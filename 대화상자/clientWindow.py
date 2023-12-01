@@ -32,7 +32,6 @@ class CWidget(QWidget):
  
         label = QLabel('Server IP')
         self.ip = QLineEdit()
-        # self.ip.setInputMask('000.000.000.000;_')
         box.addWidget(label)
         box.addWidget(self.ip)
  
