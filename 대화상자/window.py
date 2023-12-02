@@ -7,8 +7,6 @@ import server
  
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
  
-port = 5614
- 
 class CWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -20,7 +18,6 @@ class CWidget(QWidget):
     def initUI(self):
         self.setWindowTitle('서버')
          
-        # 서버 설정 부분
         ipbox = QHBoxLayout()
  
         gb = QGroupBox('서버 설정')
@@ -28,24 +25,14 @@ class CWidget(QWidget):
  
         box = QHBoxLayout()
  
-        label = QLabel('Server IP')
-        self.ip = QLineEdit(socket.gethostbyname(socket.gethostname()))
+        label = QLabel('Server IP : 127.0.0.1')
         box.addWidget(label)
-        box.addWidget(self.ip)
  
-        label = QLabel('Server Port')
-        self.port = QLineEdit(str(port))
-        box.addWidget(label)
-        box.addWidget(self.port)
- 
-        self.btn = QPushButton('서버 실행')
-        self.btn.setCheckable(True)        
-        self.btn.toggled.connect(self.toggleButton)
-        box.addWidget(self.btn)      
+        label = QLabel('Server Port : 1234')
+        box.addWidget(label)   
  
         gb.setLayout(box)
- 
-        # 접속자 정보 부분
+        
         infobox = QHBoxLayout()
         gb = QGroupBox('접속자 정보')
         infobox.addWidget(gb)
@@ -59,56 +46,63 @@ class CWidget(QWidget):
  
         box.addWidget(self.guest)
         gb.setLayout(box)
- 
-        # 채팅창 부분        
-        gb = QGroupBox('메시지')        
+      
+        gb = QGroupBox('채팅')        
         infobox.addWidget(gb)
  
         box = QVBoxLayout()        
  
-        box.addWidget(label)
- 
         self.msg = QListWidget()
         box.addWidget(self.msg)
  
-        box.addWidget(label)
- 
-        self.sendmsg = QLineEdit()
-        box.addWidget(self.sendmsg)
- 
         hbox = QHBoxLayout()
+
+        self.sendmsg = QLineEdit()
+        self.sendmsg.setFixedHeight(50)
+        hbox.addWidget(self.sendmsg)
          
         self.sendbtn = QPushButton('보내기')
         self.sendbtn.clicked.connect(self.sendMsg)
+        self.sendbtn.setFixedHeight(50)
         hbox.addWidget(self.sendbtn)
  
         self.clearbtn = QPushButton('채팅창 지움')
         self.clearbtn.clicked.connect(self.clearMsg)
+        self.clearbtn.setFixedHeight(50)
         hbox.addWidget(self.clearbtn)
  
         box.addLayout(hbox)
  
         gb.setLayout(box)
+        
+        gb = QGroupBox('그림판')
+        infobox.addWidget(gb)
+
+        box = QVBoxLayout()
+        self.drawingbtn = QPushButton('그림판')
+        self.drawingstate = False
+        self.drawingbtn.clicked.connect(self.drawing)
+        box.addWidget(self.drawingbtn)
+
+        gb.setLayout(box)
  
- 
-        # 전체 배치
         vbox = QVBoxLayout()
         vbox.addLayout(ipbox)       
         vbox.addLayout(infobox)
         self.setLayout(vbox)
          
         self.show()
- 
-    def toggleButton(self, state):
-        if state:
-            ip = self.ip.text()
-            port = self.port.text()
-            if self.s.start(ip, int(port)):
-                self.btn.setText('서버 종료')                
+
+        self.s.start("127.0.0.1", 1234)
+    
+    def drawing(self):
+        ## 여기다 그림판 로직 추가
+        if self.drawingstate:
+            self.drawingbtn.setText('그림판 종료')
+            self.drawingstate = False
         else:
-            self.s.stop()
-            self.msg.clear()
-            self.btn.setText('서버 실행')
+            self.drawingbtn.setText('그림판')
+            self.drawingstate = True
  
     def updateClient(self, addr, isConnect = False):        
         row = self.guest.rowCount()        

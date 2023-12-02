@@ -6,8 +6,6 @@ import client
  
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
  
-port = 5614
- 
 class CWidget(QWidget):
     def __init__(self):
         super().__init__()  
@@ -36,7 +34,7 @@ class CWidget(QWidget):
         box.addWidget(self.ip)
  
         label = QLabel('Server Port')
-        self.port = QLineEdit(str(port))
+        self.port = QLineEdit()
         box.addWidget(label)
         box.addWidget(self.port)
  
@@ -45,48 +43,67 @@ class CWidget(QWidget):
         box.addWidget(self.btn)
  
         gb.setLayout(box)       
- 
-        # 채팅창 부분  
+  
         infobox = QHBoxLayout()      
-        gb = QGroupBox('메시지')        
+        gb = QGroupBox('채팅')        
         infobox.addWidget(gb)
  
         box = QVBoxLayout()
-         
-        label = QLabel('받은 메시지')
-        box.addWidget(label)
  
         self.recvmsg = QListWidget()
         box.addWidget(self.recvmsg)
- 
-        label = QLabel('보낼 메시지')
-        box.addWidget(label)
+
+        hbox = QHBoxLayout()
+        box.addLayout(hbox)
  
         self.sendmsg = QTextEdit()
         self.sendmsg.setFixedHeight(50)
-        box.addWidget(self.sendmsg)
+        hbox.addWidget(self.sendmsg)
  
-        hbox = QHBoxLayout()
- 
-        box.addLayout(hbox)
         self.sendbtn = QPushButton('보내기')
         self.sendbtn.setAutoDefault(True)
         self.sendbtn.clicked.connect(self.sendMsg)
+        self.sendbtn.setFixedHeight(50)
+        hbox.addWidget(self.sendbtn)
          
         self.clearbtn = QPushButton('채팅창 지움')
         self.clearbtn.clicked.connect(self.clearMsg)
- 
-        hbox.addWidget(self.sendbtn)
+        self.clearbtn.setFixedHeight(50)
         hbox.addWidget(self.clearbtn)
+
+        gb.setLayout(box)
+
+        gb = QGroupBox('그림판')
+        infobox.addWidget(gb)
+
+        box = QVBoxLayout()
+        self.drawingbtn = QPushButton('그림판')
+        self.drawingstate = False
+        self.drawingbtn.clicked.connect(self.drawing)
+        box.addWidget(self.drawingbtn)
+
         gb.setLayout(box)
  
         # 전체 배치
         vbox = QVBoxLayout()
         vbox.addLayout(ipbox)       
-        vbox.addLayout(infobox)
+
+        hbox = QHBoxLayout()
+        hbox.addLayout(infobox)
+
+        vbox.addLayout(hbox)
         self.setLayout(vbox)
          
         self.show()
+
+    def drawing(self):
+        ## 여기다 그림판 로직 추가
+        if self.drawingstate:
+            self.drawingbtn.setText('그림판 종료')
+            self.drawingstate = False
+        else:
+            self.drawingbtn.setText('그림판')
+            self.drawingstate = True
  
     def connectClicked(self):
         if self.c.bConnect == False:
