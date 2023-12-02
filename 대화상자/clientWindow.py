@@ -82,9 +82,11 @@ class CWidget(QWidget):
         self.drawingbtn.clicked.connect(self.drawing)
         box.addWidget(self.drawingbtn)
 
+        # box.addlayout() 해서 그림판 추가
+        # 그림판 버튼은 /그림판 으로 명령어로 넘어가기로 했던 것 대신 그림판 버튼 누르면 그림판으로 넘어가게 하고 싶어서 추가함
+
         gb.setLayout(box)
  
-        # 전체 배치
         vbox = QVBoxLayout()
         vbox.addLayout(ipbox)       
 
@@ -97,10 +99,10 @@ class CWidget(QWidget):
         self.show()
 
     def drawing(self):
-        ## 여기다 그림판 로직 추가
         if self.drawingstate:
             self.drawingbtn.setText('그림판 종료')
             self.drawingstate = False
+            ## 여기다 그림판 로직 추가
         else:
             self.drawingbtn.setText('그림판')
             self.drawingstate = True
