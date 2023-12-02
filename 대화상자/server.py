@@ -97,9 +97,12 @@ class ServerSocket(QObject):
                 if msg.startswith('Drawing Coordinates:'):
                         coordinates_str = msg.split('[', 1)[1].rsplit(']', 1)[0]
                         coordinates_list = eval('[' + coordinates_str + ']')
-                        self.recv_signal.emit(msg)
-                        self.parent.handle_drawing_coordinates(coordinates_list)  # 좌표 리스트만 전달
+                        self.recv_signal.emit("그림이 왔습니다. 확인해 보세요")
                         print('[RECV]:', addr, msg)
+                        self.parent.handle_drawing_coordinates(coordinates_list)  # 좌표 리스트만 전달
+                elif msg:
+                    self.recv_signal.emit(msg)
+                    print('[RECV]:', addr, msg)
  
          
         self.removeClient(addr, client)

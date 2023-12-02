@@ -179,7 +179,7 @@ class CWidget(QWidget):
         if identifier == "drawing_coordinates":
             message = f"Drawing Coordinates: {coordinates}"
             self.c.send(message)
-            self.updateMsg(message)
+            self.updateMsg("그림을 전송했습니다")
 
     def drawing(self):
         if self.drawingstate:
@@ -214,7 +214,7 @@ class CWidget(QWidget):
         self.btn.setText('접속')
  
     def sendMsg(self):
-        if self.c.bConnect:  # Check if connected before attempting to send
+        if self.c.bConnect:  # Check if connected before attempting to sen
             sendmsg = "Client[" + str(self.c.client.getsockname()[1]) + "]" + self.sendmsg.toPlainText()
             self.c.send(sendmsg)
             self.updateMsg(sendmsg)

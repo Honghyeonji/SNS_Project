@@ -12,7 +12,7 @@ class DrawingCanvas(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.image = QImage(QSize(1000, 1000), QImage.Format_RGB32)
+        self.image = QImage(QSize(400, 400), QImage.Format_RGB32)
         self.image.fill(Qt.white)
         self.drawing_coordinates = []  # List to store drawing coordinates
 
@@ -25,7 +25,7 @@ class DrawingCanvas(QWidget):
         pen = QPen(Qt.black)
         pen.setWidth(2)
         painter.setPen(pen)
-        print(coordinates)
+
         for start_point, end_point in zip(coordinates, coordinates[1:]):
             painter.drawLine(start_point[0], start_point[1], end_point[0], end_point[1])
 
@@ -42,8 +42,7 @@ class DrawingDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(self.drawing_canvas)
 
-        # 팝업 창이 열릴 때 좌표를 전달받음
-        self.drawing_canvas.drawing_signal.connect(self.drawing_canvas.update_drawing)
+        
         self.drawing_canvas.update_drawing(coordinates)  # 좌표를 화면에 업데이트
     
 
@@ -162,7 +161,6 @@ class CWidget(QWidget):
 
             self.show_drawing_dialog()
     def handle_drawing_coordinates(self, coordinates):
-       print("Received coordinates:>>>>>>>>", coordinates)
        self.coordinates = coordinates
 
     def updateClient(self, addr, isConnect=False):
