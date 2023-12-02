@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QObject
  
 class ServerSocket(QObject):
  
+    drawing_signal = pyqtSignal(list)
     update_signal = pyqtSignal(tuple, bool)
     recv_signal = pyqtSignal(str)
  
@@ -17,6 +18,28 @@ class ServerSocket(QObject):
  
         self.update_signal.connect(self.parent.updateClient)  
         self.recv_signal.connect(self.parent.updateMsg)
+    def handle_client(self, client_socket, addr):
+
+
+        while True:
+            try:
+                data = client_socket.recv(1024)
+                if not data:
+                    break
+
+                # 받은 데이터가 좌표 데이터인지 확인
+                if data.startswith(b'Drawing Coordinates:'):
+                    coordinates = eval(data.split(b':', 1)[1].decode())
+                    self.client_coordinates[addr] = coordinates
+
+                    # 새로운 좌표가 도착할 때마다 모든 클라이언트에게 전송
+                    for client, client_socket in self.clients.items():
+                        if client != addr:
+                            client_socket.sendall(data)
+            except:
+                break
+
+    # Existing server code...
          
     def __del__(self):
         self.stop()
@@ -71,10 +94,12 @@ class ServerSocket(QObject):
                 break
             else:                
                 msg = str(recv, encoding='utf-8')
-                if msg:
-                    # self.send(msg)
-                    self.recv_signal.emit(msg)
-                    print('[RECV]:', addr, msg)
+                if msg.startswith('Drawing Coordinates:'):
+                        coordinates_str = msg.split('[', 1)[1].rsplit(']', 1)[0]
+                        coordinates_list = eval('[' + coordinates_str + ']')
+                        self.recv_signal.emit(msg)
+                        self.parent.handle_drawing_coordinates(coordinates_list)  # 좌표 리스트만 전달
+                        print('[RECV]:', addr, msg)
  
          
         self.removeClient(addr, client)

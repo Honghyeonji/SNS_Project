@@ -3,19 +3,90 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import sys
 import client
- 
+import sys
+import socket
+import threading
+
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
- 
+
+class DrawingCanvas(QWidget):
+    drawing_signal = pyqtSignal(str, list)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.image = QImage(QSize(400, 400), QImage.Format_RGB32)
+        self.image.fill(Qt.white)
+        self.drawing = False
+        self.brush_size = 5
+        self.brush_color = Qt.black
+        self.last_point = QPoint()
+        self.drawing_coordinates = []  # List to store drawing coordinates
+
+    def paintEvent(self, e):
+        canvas = QPainter(self)
+        canvas.drawImage(self.rect(), self.image, self.image.rect())
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.drawing = True
+            self.last_point = e.pos()
+
+    def mouseMoveEvent(self, e):
+        if (e.buttons() & Qt.LeftButton) & self.drawing:
+            painter = QPainter(self.image)
+            painter.setPen(QPen(self.brush_color, self.brush_size, Qt.SolidLine, Qt.RoundCap))
+            painter.drawLine(self.last_point, e.pos())
+            self.last_point = e.pos()
+            self.drawing_coordinates.append((self.last_point.x(), self.last_point.y()))  # Store coordinates
+            self.update()
+
+    def mouseReleaseEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.drawing = False
+    def get_drawing_coordinates(self):
+        return self.drawing_coordinates
+
+    
+
+class DrawingDialog(QDialog):
+    drawing_signal = pyqtSignal(str,list)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('그림판')
+        self.resize(800, 600)
+        self.drawing_canvas = DrawingCanvas(self)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.drawing_canvas)
+
+        # 버튼을 넣을 QHBoxLayout
+        button_layout = QHBoxLayout()
+        send_button = QPushButton("전송", self)
+        send_button.clicked.connect(self.send_coordinates_button)
+        button_layout.addWidget(send_button)
+
+        # 전체를 감싸는 QVBoxLayout
+        main_layout = QVBoxLayout()
+        main_layout.addLayout(layout)
+        main_layout.addLayout(button_layout)
+
+        self.setLayout(main_layout)
+    def send_coordinates_button(self):
+        coordinates = self.drawing_canvas.get_drawing_coordinates()
+        self.drawing_signal.emit("drawing_coordinates", coordinates)
+
+
 class CWidget(QWidget):
     def __init__(self):
-        super().__init__()  
-         
+        super().__init__()
+
         self.c = client.ClientSocket(self)
-        
         self.initUI()
  
     def __del__(self):
         self.c.stop()
+    
  
     def initUI(self):
         self.setWindowTitle('클라이언트')
@@ -95,14 +166,26 @@ class CWidget(QWidget):
 
         vbox.addLayout(hbox)
         self.setLayout(vbox)
-         
+        self.drawingbtn.clicked.connect(self.drawing)
+
         self.show()
+    def show_drawing_dialog(self):
+        dialog = DrawingDialog(self)
+        dialog.drawing_signal.connect(self.handle_drawing_coordinates)  # Connect the signal
+        dialog.exec_()
+
+    def handle_drawing_coordinates(self, identifier, coordinates):
+        # Handle the received drawing coordinates here
+        if identifier == "drawing_coordinates":
+            message = f"Drawing Coordinates: {coordinates}"
+            self.c.send(message)
+            self.updateMsg(message)
 
     def drawing(self):
         if self.drawingstate:
             self.drawingbtn.setText('그림판 종료')
             self.drawingstate = False
-            ## 여기다 그림판 로직 추가
+            self.show_drawing_dialog()
         else:
             self.drawingbtn.setText('그림판')
             self.drawingstate = True
@@ -131,10 +214,13 @@ class CWidget(QWidget):
         self.btn.setText('접속')
  
     def sendMsg(self):
-        sendmsg = "Client[" + str(self.c.client.getsockname()[1]) + "]" + self.sendmsg.toPlainText()
-        self.c.send(sendmsg)
-        self.updateMsg(sendmsg)
-        self.sendmsg.clear()
+        if self.c.bConnect:  # Check if connected before attempting to send
+            sendmsg = "Client[" + str(self.c.client.getsockname()[1]) + "]" + self.sendmsg.toPlainText()
+            self.c.send(sendmsg)
+            self.updateMsg(sendmsg)
+            self.sendmsg.clear()
+        else:
+            print("Not connected. Cannot send message.")
  
     def clearMsg(self):
         self.recvmsg.clear()
