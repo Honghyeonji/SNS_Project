@@ -1,64 +1,70 @@
 from threading import Thread
 from socket import *
-from PyQt5.QtCore import Qt, pyqtSignal, QObject
- 
+from PyQt5.QtCore import Qt, QSize, pyqtSignal, QObject
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+import sys
+import random
+
+QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+
 class ServerSocket(QObject):
  
     update_signal = pyqtSignal(tuple, bool)
     recv_signal = pyqtSignal(str)
- 
-    def __init__(self, parent):        
+
+    def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.bListen = False       
+        self.bListen = False
         self.clients = []
         self.ip = []
         self.threads = []
- 
-        self.update_signal.connect(self.parent.updateClient)  
+
+        self.update_signal.connect(self.parent.updateClient)
         self.recv_signal.connect(self.parent.updateMsg)
          
     def __del__(self):
         self.stop()
- 
+
     def start(self, ip, port):
-        self.server = socket(AF_INET, SOCK_STREAM)            
- 
+        self.server = socket(AF_INET, SOCK_STREAM)
+
         try:
-            self.server.bind( (ip, port))
+            self.server.bind((ip, port))
         except Exception as e:
             print('Bind Error : ', e)
             return False
-        else:                 
+        else:
             self.bListen = True
             self.t = Thread(target=self.listen, args=(self.server,))
             self.t.start()
             print('Server Listening...')
- 
+
         return True
- 
+
     def stop(self):
         self.bListen = False
-        if hasattr(self, 'server'):            
-            self.server.close()            
+        if hasattr(self, 'server'):
+            self.server.close()
             print('Server Stop')
- 
+
     def listen(self, server):
         while self.bListen:
-            server.listen(5)   
+            server.listen(5)
             try:
                 client, addr = server.accept()
             except Exception as e:
                 print('Accept() Error : ', e)
                 break
-            else:                
+            else:
                 self.clients.append(client)
-                self.ip.append(addr)                
-                self.update_signal.emit(addr, True)                
+                self.ip.append(addr)
+                self.update_signal.emit(addr, True)
                 t = Thread(target=self.receive, args=(addr, client))
                 self.threads.append(t)
-                t.start()                
-                 
+                t.start()
+
         self.removeAllClients()
         self.server.close()
  
@@ -88,13 +94,17 @@ class ServerSocket(QObject):
  
     def send(self, msg):
         try:
-            for c in self.clients:
-                c.send(msg.encode())
+            if client:
+                for c in self.clients:
+                    if c != client:
+                        c.send(msg.encode())
+            else:
+                for c in self.clients:
+                    c.send(msg.encode())
         except Exception as e:
             print('Send() Error : ', e)
- 
+
     def removeClient(self, addr, client):
-        # find closed client index
         idx = -1
         for k, v in enumerate(self.clients):
             if v == client:
@@ -108,7 +118,7 @@ class ServerSocket(QObject):
         del(self.threads[idx])
         self.update_signal.emit(addr, False)
         self.resourceInfo()
- 
+
     def removeAllClients(self):
         for c in self.clients:
             c.close()
@@ -121,7 +131,7 @@ class ServerSocket(QObject):
         self.threads.clear()
  
         self.resourceInfo()
- 
+
     def resourceInfo(self):
         print('Number of Client ip\t: ', len(self.ip) )
         print('Number of Client socket\t: ', len(self.clients) )
