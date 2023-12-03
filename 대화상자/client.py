@@ -2,19 +2,16 @@ from threading import *
 from socket import *
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
  
-class Signal(QObject):  
+class ClientSocket(QObject):
     recv_signal = pyqtSignal(str)
-    disconn_signal = pyqtSignal()   
- 
-class ClientSocket:
- 
+    disconn_signal = pyqtSignal()
+
     def __init__(self, parent):        
+        super().__init__()  
         self.parent = parent                
         
-        self.recv = Signal()        
-        self.recv.recv_signal.connect(self.parent.updateMsg)
-        self.disconn = Signal()        
-        self.disconn.disconn_signal.connect(self.parent.updateDisconnect)
+        self.recv_signal.connect(self.parent.updateMsg)
+        self.disconn_signal.connect(self.parent.updateDisconnect)
  
         self.bConnect = False
          
@@ -25,13 +22,13 @@ class ClientSocket:
         self.client = socket(AF_INET, SOCK_STREAM)           
  
         try:
-            self.client.connect( (ip, port) )
+            self.client.connect((ip, port))
         except Exception as e:
             print('Connect Error : ', e)
             return False
         else:
             self.bConnect = True
-            self.t = Thread(target=self.receive, args=(self.client,))
+            self.t = Thread(target=self.receive)
             self.t.start()
             print('Connected')
  
@@ -43,21 +40,30 @@ class ClientSocket:
             self.client.close()
             del(self.client)
             print('Client Stop') 
-            self.disconn.disconn_signal.emit()
+            self.disconn_signal.emit()
  
-    def receive(self, client):
+    def receive(self):
         while self.bConnect:            
             try:
-                recv = client.recv(1024)                
+                recv = self.client.recv(1024)                
             except Exception as e:
                 print('Recv() Error :', e)                
                 break
-            else:                
+            else:
                 msg = str(recv, encoding='utf-8')
-                if msg:
-                    self.recv.recv_signal.emit(msg)
+                if msg.startswith('Drawing Coordinates:'):
+                    coordinates_str = msg.split('[', 1)[1].rsplit(']', 1)[0]
+                    coordinates_list = eval('[' + coordinates_str + ']')
                     print('[RECV]:', msg)
- 
+                    self.parent.handle_drawing_receive_coordinates(coordinates_list)  # 좌표 리스트만 전달
+                elif msg:
+                    self.recv_signal.emit(msg)
+                    print('[RECV]:', msg)
+
+                # if msg:
+                #     self.recv_signal.emit(msg)
+                #     print('[RECV]:', msg)
+
         self.stop()
  
     def send(self, msg):

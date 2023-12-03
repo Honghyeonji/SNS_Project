@@ -1,13 +1,12 @@
+from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtGui import *
-from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import sys
-import socket
-import server
 import random
-
+from server import *
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+
 
 class DrawingCanvas(QWidget):
     drawing_signal = pyqtSignal(tuple)
@@ -31,7 +30,6 @@ class DrawingCanvas(QWidget):
         for start_point, end_point in zip(coordinates, coordinates[1:]):
             painter.drawLine(start_point[0], start_point[1], end_point[0], end_point[1])
 
-
         self.update()
 
 class DrawingDialog(QDialog):
@@ -46,7 +44,12 @@ class DrawingDialog(QDialog):
 
         
         self.drawing_canvas.update_drawing(coordinates)  # 좌표를 화면에 업데이트
-    
+
+    def closeEvent(self, event):
+        # 다이얼로그가 닫힐 때 drawingsendstate를 변경
+        self.parent().set_drawingsendstate(False)  # 또는 True로 변경하면 됩니다.
+        super().closeEvent(event)
+        
 
 class CWidget(QWidget):
     def __init__(self):
@@ -54,8 +57,7 @@ class CWidget(QWidget):
         self.random_word = None
         self.coordinates = []
 
-        self.s = server.ServerSocket(self)
-        self.drawing_canvas = DrawingCanvas(self)
+        self.s = ServerSocket(self)  # Pass self as the parent
         self.initUI()
 
     def initUI(self):
@@ -122,7 +124,12 @@ class CWidget(QWidget):
         infobox.addWidget(gb)
 
         box = QVBoxLayout()
-        self.drawingbtn = QPushButton('그림판')
+        self.drawingsendbtn = QPushButton('그림판 전송')
+        self.drawingsendstate = False
+        self.drawingsendbtn.clicked.connect(self.drawing)
+        box.addWidget(self.drawingsendbtn)
+
+        self.drawingbtn = QPushButton('그림판 보기')
         self.drawingstate = False
         self.drawingbtn.clicked.connect(self.drawing)
         box.addWidget(self.drawingbtn)
@@ -162,14 +169,20 @@ class CWidget(QWidget):
         dialog = DrawingDialog(self.coordinates,self)
         dialog.exec_()
 
+    def set_drawingsendstate(self, state):
+        self.drawingsendstate = state
+        print(f"drawingsendstate가 {state}로 변경되었습니다.")
+        self.drawingsendbtn.setText('그림판 시작')
+        self.drawingsendstate = False
+
     def drawing(self):
-        if self.drawingstate:
-            self.drawingbtn.setText('그림판 시작')
-            self.drawingstate = False
+        if self.drawingsendstate:
+            self.drawingsendbtn.setText('그림판 시작')
+            self.drawingsendstate = False
 
         else:
-            self.drawingbtn.setText('그림판 종료')
-            self.drawingstate = True
+            self.drawingsendbtn.setText('그림판 종료')
+            self.drawingsendstate = True
 
             self.show_drawing_dialog()
 
@@ -218,7 +231,7 @@ class CWidget(QWidget):
 
             self.updateMsg("게임을 시작합니다.")
             self.updateMsg("단어가 전송 되었습니다. 상대방이 전송한 그림을 보고 맞춰주세요.")
-            self.updateMsg("그림판 버튼을 누르면 그림을 볼 수 있습니다.")
+            self.updateMsg("그림이 도착한 후 그림판 버튼을 누르면 그림을 볼 수 있습니다.")
 
             message1 = f"게임을 시작합니다.\n"
             message2 = f"주어진 단어를 보고 그림을 그려 전송해주세요.\n"
@@ -251,8 +264,6 @@ class CWidget(QWidget):
         else:
             self.updateMsg("랜덤 단어를 먼저 출제하세요.")
             self.word_input.clear()
-            
-
             
 
 if __name__ == '__main__':

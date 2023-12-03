@@ -48,7 +48,6 @@ class DrawingCanvas(QWidget):
         return self.drawing_coordinates
 
     
-
 class DrawingDialog(QDialog):
     drawing_signal = pyqtSignal(str,list)
 
@@ -77,10 +76,62 @@ class DrawingDialog(QDialog):
         coordinates = self.drawing_canvas.get_drawing_coordinates()
         self.drawing_signal.emit("drawing_coordinates", coordinates)
 
+    def closeEvent(self, event):
+        # 다이얼로그가 닫힐 때 drawingsendstate를 변경
+        self.parent().set_drawingsendstate(False)  # 또는 True로 변경하면 됩니다.
+        super().closeEvent(event)
+
+
+
+class DrawingReceiveCanvas(QWidget):
+    drawing_signal = pyqtSignal(tuple)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.image = QImage(QSize(400, 400), QImage.Format_RGB32)
+        self.image.fill(Qt.white)
+        self.drawing_coordinates = []  # List to store drawing coordinates
+
+    def paintEvent(self, e):
+        canvas = QPainter(self)
+        canvas.drawImage(self.rect(), self.image, self.image.rect())
+
+    def update_drawing(self, coordinates):
+        painter = QPainter(self.image)
+        pen = QPen(Qt.black)
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        for start_point, end_point in zip(coordinates, coordinates[1:]):
+            painter.drawLine(start_point[0], start_point[1], end_point[0], end_point[1])
+
+        self.update()
+
+class DrawingReceiveDialog(QDialog):
+    def __init__(self, coordinates, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('그림판')
+        self.resize(800, 600)
+        self.drawing_canvas = DrawingReceiveCanvas(self)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.drawing_canvas)
+
+        
+        self.drawing_canvas.update_drawing(coordinates)  # 좌표를 화면에 업데이트
+
+    def closeEvent(self, event):
+        # 다이얼로그가 닫힐 때 drawingsendstate를 변경
+        self.parent().set_receive_drawingsendstate(False)  # 또는 True로 변경하면 됩니다.
+        super().closeEvent(event)
+
+
+
 
 class CWidget(QWidget):
     def __init__(self):
         super().__init__()
+        self.coordinates = []
 
         self.c = client.ClientSocket(self)
         self.initUI()
@@ -149,13 +200,16 @@ class CWidget(QWidget):
         infobox.addWidget(gb)
 
         box = QVBoxLayout()
-        self.drawingbtn = QPushButton('그림판')
-        self.drawingstate = False
-        self.drawingbtn.clicked.connect(self.drawing)
-        box.addWidget(self.drawingbtn)
-        
-        # box.addlayout() 해서 그림판 추가
-        # 그림판 버튼은 /그림판 으로 명령어로 넘어가기로 했던 것 대신 그림판 버튼 누르면 그림판으로 넘어가게 하고 싶어서 추가함
+        self.drawingsendbtn = QPushButton('전송 그림판')
+        self.drawingsendstate = True
+        self.drawingsendbtn.clicked.connect(self.drawing)
+        box.addWidget(self.drawingsendbtn)
+
+        self.drawingreceivebtn = QPushButton('그림판 보기')
+        self.drawingreceivestate = True
+        self.drawingreceivebtn.clicked.connect(self.receive_drawing)
+        box.addWidget(self.drawingreceivebtn)
+
 
         gb.setLayout(box)
  
@@ -167,7 +221,6 @@ class CWidget(QWidget):
 
         vbox.addLayout(hbox)
         self.setLayout(vbox)
-        self.drawingbtn.clicked.connect(self.drawing)
 
         self.show()
 
@@ -179,18 +232,52 @@ class CWidget(QWidget):
     def handle_drawing_coordinates(self, identifier, coordinates):
         # Handle the received drawing coordinates here
         if identifier == "drawing_coordinates":
+            self.c.send( "Client[" + str(self.c.client.getsockname()[1]) + "] 그림이 도착했습니다. 확인해주세요.")
             message = f"Drawing Coordinates: {coordinates}"
             self.c.send(message)
             self.updateMsg("그림을 전송했습니다")
 
+    def set_drawingsendstate(self, state):
+        self.drawingsendstate = state
+        print(f"drawingsendstate가 {state}로 변경되었습니다.")
+        self.drawingsendbtn.setText('전송 그림판')
+        self.drawingsendstate = True
+
     def drawing(self):
-        if self.drawingstate:
-            self.drawingbtn.setText('그림판 종료')
-            self.drawingstate = False
+        if self.drawingsendstate:
+            self.drawingsendbtn.setText('그림판 종료')
+            self.drawingsendstate = False
             self.show_drawing_dialog()
         else:
-            self.drawingbtn.setText('그림판')
-            self.drawingstate = True
+            self.drawingsendbtn.setText('전송 그림판')
+            self.drawingsendstate = True
+
+
+    
+    def show_drawing_receive_dialog(self):
+        dialog = DrawingReceiveDialog(self.coordinates,self)
+        dialog.exec_()
+
+    def set_receive_drawingsendstate(self, state):
+        self.drawingsendstate = state
+        print(f"drawingsendstate가 {state}로 변경되었습니다.")
+        self.drawingsendbtn.setText('그림판 확인')
+        self.drawingsendstate = True
+
+    def receive_drawing(self):
+        if self.drawingreceivestate:
+            self.drawingreceivebtn.setText('그림판 종료')
+            self.drawingreceivestate = False
+            self.show_drawing_receive_dialog()
+
+        else:
+            self.drawingreceivebtn.setText('그림판 확인')
+            self.drawingreceivestate = True
+
+    def handle_drawing_receive_coordinates(self, coordinates):
+       self.coordinates = coordinates
+
+
  
     def connectClicked(self):
         if self.c.bConnect == False:
