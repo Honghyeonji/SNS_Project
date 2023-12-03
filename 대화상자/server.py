@@ -70,14 +70,13 @@ class ServerSocket(QObject):
                     break
                 print(data)
                 self.parent.handle_drawing_coordinates(data) 
-                # # 받은 데이터가 좌표 데이터인지 확인
-                # if data.startswith(b'Drawing Coordinates:'):
-                #     self.parent.handle_drawing_coordinates(data) 
-
+                # 받은 데이터가 좌표 데이터인지 확인
+                if data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xFF\xD8\xFF\xE0') or data.startswith(b'\xFF\xD8\xFF\xE1'):
+                    self.parent.handle_drawing_coordinates(data) 
     
-                # else:
-                #     msg = data.decode('utf-8')
-                # self.recv_signal.emit(msg)
+                else:
+                    msg = data.decode('utf-8')
+                    self.recv_signal.emit(msg)
 
         except Exception as e:
             print(f"Error receiving data from {addr}: {e}")
