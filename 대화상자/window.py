@@ -20,20 +20,12 @@ class DrawingCanvas(QWidget):
         canvas = QPainter(self)
         canvas.drawImage(self.rect(), self.image, self.image.rect())
 
-    def update_drawing(self, coordinates):
-        painter = QPainter(self.image)
-        pen = QPen(Qt.black)
-        pen.setWidth(2)
-        painter.setPen(pen)
-
-        for start_point, end_point in zip(coordinates, coordinates[1:]):
-            painter.drawLine(start_point[0], start_point[1], end_point[0], end_point[1])
-
-
+    def update_drawing(self, image):
+        self.image = image
         self.update()
 
 class DrawingDialog(QDialog):
-    def __init__(self, coordinates, parent=None):
+    def __init__(self, image, parent=None):
         super().__init__(parent)
         self.setWindowTitle('그림판')
         self.resize(800, 600)
@@ -43,13 +35,13 @@ class DrawingDialog(QDialog):
         layout.addWidget(self.drawing_canvas)
 
         
-        self.drawing_canvas.update_drawing(coordinates)  # 좌표를 화면에 업데이트
+        self.drawing_canvas.update_drawing(image)  # 좌표를 화면에 업데이트
     
 
 class CWidget(QWidget):
     def __init__(self):
         super().__init__()
-
+        self.image = QImage(QSize(400, 400), QImage.Format_RGB32) 
         self.s = server.ServerSocket(self)
         self.drawing_canvas = DrawingCanvas(self)
         self.initUI()
@@ -147,7 +139,7 @@ class CWidget(QWidget):
         self.s.start("127.0.0.1", 1234)
 
     def show_drawing_dialog(self):
-        dialog = DrawingDialog(self.coordinates,self)
+        dialog = DrawingDialog(self.image,self)
         dialog.exec_()
 
     def drawing(self):
@@ -160,8 +152,9 @@ class CWidget(QWidget):
             self.drawingstate = True
 
             self.show_drawing_dialog()
-    def handle_drawing_coordinates(self, coordinates):
-       self.coordinates = coordinates
+    def handle_drawing_coordinates(self, image_data):
+       self.image = QImage.fromData(image_data)
+    #    self.drawing_canvas.update_drawing(image)
 
     def updateClient(self, addr, isConnect=False):
         row = self.guest.rowCount()

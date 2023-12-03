@@ -65,6 +65,7 @@ class ClientSocket:
             return
  
         try:
-            self.client.send(msg.encode())
+            self.client.sendall(msg)
+            print(f'Sent: {msg}')  # 데이터를 콘솔에 출력
         except Exception as e:
             print('Send() Error : ', e)

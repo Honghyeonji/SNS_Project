@@ -8,9 +8,21 @@ import socket
 import threading
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+class ImagePopup(QDialog):
+    def __init__(self, image_data, parent=None):
+        super().__init__(parent)
+
+        pixmap = QPixmap()
+        pixmap.loadFromData(image_data)
+
+        label = QLabel(self)
+        label.setPixmap(pixmap)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(label)
 
 class DrawingCanvas(QWidget):
-    drawing_signal = pyqtSignal(str, list)
+    drawing_signal = pyqtSignal(str, bytes)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -20,7 +32,7 @@ class DrawingCanvas(QWidget):
         self.brush_size = 5
         self.brush_color = Qt.black
         self.last_point = QPoint()
-        self.drawing_coordinates = []  # List to store drawing coordinates
+
 
     def paintEvent(self, e):
         canvas = QPainter(self)
@@ -37,7 +49,6 @@ class DrawingCanvas(QWidget):
             painter.setPen(QPen(self.brush_color, self.brush_size, Qt.SolidLine, Qt.RoundCap))
             painter.drawLine(self.last_point, e.pos())
             self.last_point = e.pos()
-            self.drawing_coordinates.append((self.last_point.x(), self.last_point.y()))  # Store coordinates
             self.update()
 
     def mouseReleaseEvent(self, e):
@@ -45,11 +56,18 @@ class DrawingCanvas(QWidget):
             self.drawing = False
     def get_drawing_coordinates(self):
         return self.drawing_coordinates
+    def get_image_data(self):
+        byte_array = QByteArray()
+        buffer = QBuffer(byte_array)
+        buffer.open(QIODevice.WriteOnly)
+        self.image.save(buffer, "PNG")
+        return byte_array.data()
+
 
     
 
 class DrawingDialog(QDialog):
-    drawing_signal = pyqtSignal(str,list)
+    drawing_signal = pyqtSignal(str,bytes)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -63,7 +81,7 @@ class DrawingDialog(QDialog):
         # 버튼을 넣을 QHBoxLayout
         button_layout = QHBoxLayout()
         send_button = QPushButton("전송", self)
-        send_button.clicked.connect(self.send_coordinates_button)
+        send_button.clicked.connect(self.send_image_button)
         button_layout.addWidget(send_button)
 
         # 전체를 감싸는 QVBoxLayout
@@ -72,11 +90,12 @@ class DrawingDialog(QDialog):
         main_layout.addLayout(button_layout)
 
         self.setLayout(main_layout)
-    def send_coordinates_button(self):
-        coordinates = self.drawing_canvas.get_drawing_coordinates()
-        self.drawing_signal.emit("drawing_coordinates", coordinates)
 
-
+    def send_image_button(self):
+        image_data = self.drawing_canvas.get_image_data()
+        image_data_list = list(image_data)
+        self.drawing_signal.emit("drawing_image", image_data)
+        
 class CWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -171,15 +190,21 @@ class CWidget(QWidget):
         self.show()
     def show_drawing_dialog(self):
         dialog = DrawingDialog(self)
-        dialog.drawing_signal.connect(self.handle_drawing_coordinates)  # Connect the signal
+        dialog.drawing_signal.connect(self.handle_drawing_image)  # Connect the signal
         dialog.exec_()
 
-    def handle_drawing_coordinates(self, identifier, coordinates):
-        # Handle the received drawing coordinates here
-        if identifier == "drawing_coordinates":
-            message = f"Drawing Coordinates: {coordinates}"
-            self.c.send(message)
-            self.updateMsg("그림을 전송했습니다")
+    def handle_drawing_image(self, identifier, image_data):
+
+        # if identifier == "drawing_image":
+        #     image_data_bytes = bytes(image_data)
+
+        #     self.c.send(image_data_bytes)
+        # popup = ImagePopup(image_data)
+        # popup.show()
+        print(image_data)
+
+
+
 
     def drawing(self):
         if self.drawingstate:
