@@ -4,7 +4,6 @@ from PyQt5.QtCore import Qt, pyqtSignal, QObject
  
 class ServerSocket(QObject):
  
-    drawing_signal = pyqtSignal(list)
     update_signal = pyqtSignal(tuple, bool)
     recv_signal = pyqtSignal(str)
  
@@ -18,32 +17,6 @@ class ServerSocket(QObject):
  
         self.update_signal.connect(self.parent.updateClient)  
         self.recv_signal.connect(self.parent.updateMsg)
-    def handle_client(self, client_socket, addr):
-        try:
-            while True:
-                data = client_socket.recv(4096)
-                if not data:
-                    break
-
-                # 받은 데이터가 좌표 데이터인지 확인
-                if data.startswith(b'Drawing Coordinates:'):
-                    coordinates = eval(data.split(b':', 1)[1].decode())
-                    self.drawing_signal.emit(coordinates)
-
-                    # 새로운 좌표가 도착할 때마다 모든 클라이언트에게 전송
-                    for client_addr, client_socket in self.clients.items():
-                        if client_addr != addr:
-                            client_socket.sendall(data)
-
-                elif data.startswith(b'Client:'):
-                    msg = data.decode('utf-8')
-                    self.recv_signal.emit(msg)
-
-        except Exception as e:
-            print(f"Error receiving data from {addr}: {e}")
-        finally:
-            client_socket.close()
-            self.removeClient(addr, client_socket)
          
     def __del__(self):
         self.stop()
@@ -89,27 +62,31 @@ class ServerSocket(QObject):
         self.removeAllClients()
         self.server.close()
  
-    def receive(self, addr, client_socket):
+    def receive(self, addr, client):   
         try:
             while True:
-                data = client_socket.recv(4096)
+                data = client.recv(4096)
                 if not data:
                     break
                 print(data)
-                # 받은 데이터가 좌표 데이터인지 확인
-                if data.startswith(b'Drawing Coordinates:'):
-                    self.parent.handle_drawing_coordinates(data) 
+                self.parent.handle_drawing_coordinates(data) 
+                # # 받은 데이터가 좌표 데이터인지 확인
+                # if data.startswith(b'Drawing Coordinates:'):
+                #     self.parent.handle_drawing_coordinates(data) 
 
     
-                else:
-                    msg = data.decode('utf-8')
-                    self.recv_signal.emit(msg)
+                # else:
+                #     msg = data.decode('utf-8')
+                # self.recv_signal.emit(msg)
 
         except Exception as e:
             print(f"Error receiving data from {addr}: {e}")
         finally:
-            client_socket.close()
-            self.removeClient(addr, client_socket)
+            client.close()
+            self.removeClient(addr, client)
+        
+
+ 
     def send(self, msg):
         try:
             for c in self.clients:
