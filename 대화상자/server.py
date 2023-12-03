@@ -1,17 +1,15 @@
 from threading import Thread
 from socket import *
-from PyQt5.QtCore import Qt, QSize, pyqtSignal, QObject
+from PyQt5.QtCore import pyqtSignal, QObject
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import sys
 import random
-
-QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 
 class ServerSocket(QObject):
  
     update_signal = pyqtSignal(tuple, bool)
-    recv_signal = pyqtSignal(str)
+    msg_signal = pyqtSignal(str)
+    quiz_signal = pyqtSignal(str)
 
     def __init__(self, parent):
         super().__init__()
@@ -21,8 +19,13 @@ class ServerSocket(QObject):
         self.ip = []
         self.threads = []
 
+        self.quizing = False
+        self.quizClient = None
+        self.quizWord = None
+
         self.update_signal.connect(self.parent.updateClient)
-        self.recv_signal.connect(self.parent.updateMsg)
+        self.msg_signal.connect(self.parent.updateMsg)
+        self.quiz_signal.connect(self.parent.guessWord)
          
     def __del__(self):
         self.stop()
@@ -75,14 +78,19 @@ class ServerSocket(QObject):
                 if not data:
                     break
                 print(data)
-                self.parent.handle_drawing_coordinates(data) 
                 # 받은 데이터가 좌표 데이터인지 확인
                 if data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xFF\xD8\xFF\xE0') or data.startswith(b'\xFF\xD8\xFF\xE1'):
                     self.parent.handle_drawing_coordinates(data) 
+                    self.sendIMG(data, client)
     
                 else:
                     msg = data.decode('utf-8')
-                    self.recv_signal.emit(msg)
+                    if msg.find(self.quizWord):
+                        self.quiz_signal.emit(msg)
+                        self.quizCorrect(msg, client)
+                    else:
+                        self.msg_signal.emit(msg)
+                        self.send(msg, client)
 
         except Exception as e:
             print(f"Error receiving data from {addr}: {e}")
@@ -90,9 +98,8 @@ class ServerSocket(QObject):
             client.close()
             self.removeClient(addr, client)
         
-
  
-    def send(self, msg):
+    def send(self, msg, client=None):
         try:
             if client:
                 for c in self.clients:
@@ -103,6 +110,64 @@ class ServerSocket(QObject):
                     c.send(msg.encode())
         except Exception as e:
             print('Send() Error : ', e)
+
+    def sendIMG(self, msg, client=None):
+        try:
+            if client:
+                for c in self.clients:
+                    if c != client:
+                        c.sendall(msg)
+            else:
+                for c in self.clients:
+                    c.sendall(msg)
+            print(f'imgSent: {msg}')  # 데이터를 콘솔에 출력
+        except Exception as e:
+            print('imgSend() Error : ', e)
+        
+    def sendQuiz(self, word):
+        try:
+            self.quizClient = self.clients[random.randint(0, len(self.clients)-1)]
+            self.quizWord = word
+            for c in self.clients:
+                if c == self.quizClient:
+                    msg = f"게임을 시작합니다.\n"
+                    c.send(msg.encode())
+                    msg = f"주어진 단어를 보고 그림을 그려 전송해주세요.\n"
+                    c.send(msg.encode())
+                    msg = f"우측 그림판을 통해 그릴 수 있습니다.\n"
+                    c.send(msg.encode())
+                    msg = f"랜덤 단어: {word}"
+                    c.send(msg.encode())
+                else:
+                    msg = f"게임을 시작합니다.\n"
+                    c.send(msg.encode())
+                    msg = f"단어가 {"Client[" + str(self.quizClient.getscokname()[1]) + "]"}유저에게 전송 되었습니다. {"Client[" + str(self.quizClient.getscokname()[1]) + "]"}유저가 전송한 그림을 보고 맞춰주세요.\n"
+                    c.send(msg.encode())
+                    msg = f"그림이 도착한 후 그림판 버튼을 누르면 그림을 볼 수 있습니다.\n"
+                    c.send(msg.encode())
+
+            self.quizing = True
+        except Exception as e:
+            print('sendQuizSend() Error : ', e)
+            
+    def quizCorrect(self, client):
+        try:
+            for c in self.clients:
+                if c == client:
+                    msg = f"축하합니다. 정답을 맞췄습니다! : 맞춘 단어:{self.quizWord}.\n"
+                    c.send(msg.encode())
+                    msg = f"게임을 종료합니다.\n"
+                    c.send(msg.encode())
+                else:
+                    msg = f"Client[{str(client.getscokname()[1])}]님이 정답을 맞췄습니다! : 맞춘 단어:{self.quizWord}.\n"
+                    c.send(msg.encode())
+                    msg = f"게임을 종료합니다.\n"
+                    c.send(msg.encode())
+            self.quizing=False
+            self.quizWord=None
+            self.quizClient=None
+        except Exception as e:
+            print('quizCorrectSend() Error : ', e)
 
     def removeClient(self, addr, client):
         idx = -1

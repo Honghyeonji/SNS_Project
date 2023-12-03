@@ -15,7 +15,6 @@ class DrawingCanvas(QWidget):
         super().__init__(parent)
         self.image = QImage(QSize(400, 400), QImage.Format_RGB32)
         self.image.fill(Qt.white)
-        self.drawing_coordinates = []  # List to store drawing coordinates
 
     def paintEvent(self, e):
         canvas = QPainter(self)
@@ -40,8 +39,7 @@ class DrawingDialog(QDialog):
         self.drawing_canvas.update_drawing(image_data)  # 좌표를 화면에 업데이트
 
     def closeEvent(self, event):
-        # 다이얼로그가 닫힐 때 drawingsendstate를 변경
-        self.parent().set_drawingsendstate(False)  # 또는 True로 변경하면 됩니다.
+        self.parent().set_drawingstate(False)  # 또는 True로 변경하면 됩니다.
         super().closeEvent(event)
         
 
@@ -119,11 +117,6 @@ class CWidget(QWidget):
         infobox.addWidget(gb)
 
         box = QVBoxLayout()
-        self.drawingsendbtn = QPushButton('그림판 전송')
-        self.drawingsendstate = False
-        self.drawingsendbtn.clicked.connect(self.drawing)
-        box.addWidget(self.drawingsendbtn)
-
         self.drawingbtn = QPushButton('그림판 보기')
         self.drawingstate = False
         self.drawingbtn.clicked.connect(self.drawing)
@@ -164,27 +157,25 @@ class CWidget(QWidget):
         dialog = DrawingDialog(self.image_data,self)
         dialog.exec_()
 
-    def set_drawingsendstate(self, state):
-        self.drawingsendstate = state
-        print(f"drawingsendstate가 {state}로 변경되었습니다.")
-        self.drawingsendbtn.setText('그림판 시작')
-        self.drawingsendstate = False
+    def set_drawingstate(self, state):
+        self.drawingstate = state
+        print(f"drawingstate가 {state}로 변경되었습니다.")
+        self.drawingbtn.setText('그림판 시작')
+        self.drawingstate = False
 
     def drawing(self):
-        if self.drawingsendstate:
-            self.drawingsendbtn.setText('그림판 시작')
-            self.drawingsendstate = False
+        if self.drawingstate:
+            self.drawingbtn.setText('그림판 시작')
+            self.drawingstate = False
 
         else:
-            self.drawingsendbtn.setText('그림판 종료')
-            self.drawingsendstate = True
+            self.drawingbtn.setText('그림판 종료')
+            self.drawingstate = True
 
             self.show_drawing_dialog()
-            
+
     def handle_drawing_coordinates(self, image_data):
        self.image_data = image_data
-    #    print(image_data)
-    #    self.drawing_canvas.update_drawing(image)
 
     def updateClient(self, addr, isConnect=False):
         row = self.guest.rowCount()
@@ -210,9 +201,19 @@ class CWidget(QWidget):
             return
         sendmsg = "Server[" + str(self.s.server.getsockname()[1]) + "]" + self.sendmsg.text()
         self.updateMsg(sendmsg)
-        # self.handle_drawing_coordinates(sendmsg)
         print(sendmsg)
         self.s.send(sendmsg)
+        if self.sendmsg.text().find(self.random_word):
+            self.updateMsg(f"서버가 정답을 맞췄습니다!")
+            self.updateMsg(f"맞춘 단어: {self.random_word}")
+            self.updateMsg(f"게임을 종료합니다.")
+            sendmsg = f"Server[{str(self.s.server.getsockname()[1])}]님이 정답을 맞췄습니다! : 맞춘단어:{self.random_word}\n"
+            self.s.send(sendmsg)
+            self.word_input.clear()
+            self.random_word = None
+            self.s.quizing=False
+            self.s.quizWord=None
+            self.s.quizClient=None
         self.sendmsg.clear()
 
     def clearMsg(self):
@@ -230,38 +231,18 @@ class CWidget(QWidget):
             self.updateMsg("단어가 전송 되었습니다. 상대방이 전송한 그림을 보고 맞춰주세요.")
             self.updateMsg("그림이 도착한 후 그림판 버튼을 누르면 그림을 볼 수 있습니다.")
 
-            message1 = f"게임을 시작합니다.\n"
-            message2 = f"주어진 단어를 보고 그림을 그려 전송해주세요.\n"
-            message3 = f"우측 그림판을 통해 그릴 수 있습니다.\n"
-            message4 = f"랜덤 단어: {self.random_word}"
-
-            self.s.send(message1)
-            self.s.send(message2)
-            self.s.send(message3)
-            self.s.send(message4)
+            self.s.sendQuiz(self.random_word)
 
         else:
             self.updateMsg("이미 진행 중 입니다.")
 
-    def guessWord(self):
-        if (self.random_word != None):
-            guessed_word = self.word_input.text()
-            if guessed_word.lower() == self.random_word.lower():
-                self.updateMsg(f"정답을 맞췄습니다!")
-                self.updateMsg(f"맞춘 단어: {guessed_word}")
-                self.updateMsg(f"게임을 종료합니다.")
-                self.word_input.clear()
-                self.random_word = None
-
-                message = f"상대방이 정답을 맞췄습니다! 게임을 종료합니다."
-                self.s.send(message)
-            else:
-                self.updateMsg("틀렸습니다. 다시 시도하세요.")
-                self.word_input.clear()
-        else:
-            self.updateMsg("랜덤 단어를 먼저 출제하세요.")
-            self.word_input.clear()
-            
+    def guessWord(self, msg):
+        self.updateMsg(msg)
+        self.updateMsg(f"정답을 맞췄습니다!")
+        self.updateMsg(f"맞춘 단어: {self.random_word}")
+        self.updateMsg(f"게임을 종료합니다.")
+        self.word_input.clear()
+        self.random_word = None
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

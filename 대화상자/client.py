@@ -43,28 +43,24 @@ class ClientSocket(QObject):
             self.disconn_signal.emit()
  
     def receive(self):
-        while self.bConnect:            
-            try:
-                recv = self.client.recv(1024)                
-            except Exception as e:
-                print('Recv() Error :', e)                
-                break
-            else:
-                msg = str(recv, encoding='utf-8')
-                if msg.startswith('Drawing Coordinates:'):
-                    coordinates_str = msg.split('[', 1)[1].rsplit(']', 1)[0]
-                    coordinates_list = eval('[' + coordinates_str + ']')
-                    print('[RECV]:', msg)
-                    self.parent.handle_drawing_receive_coordinates(coordinates_list)  # 좌표 리스트만 전달
-                elif msg:
+        try:
+            while True:
+                data = self.client.recv(4096)
+                if not data:
+                    break
+                print(data)
+                # 받은 데이터가 좌표 데이터인지 확인
+                if data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xFF\xD8\xFF\xE0') or data.startswith(b'\xFF\xD8\xFF\xE1'):
+                    self.parent.handle_drawing_receive_coordinates(data) 
+    
+                else:
+                    msg = data.decode('utf-8')
                     self.recv_signal.emit(msg)
-                    print('[RECV]:', msg)
 
-                # if msg:
-                #     self.recv_signal.emit(msg)
-                #     print('[RECV]:', msg)
-
-        self.stop()
+        except Exception as e:
+            print('Recv() Error :', e)
+        finally:
+            self.stop()
 
     def send(self, msg):
         if not self.bConnect:
@@ -83,3 +79,4 @@ class ClientSocket(QObject):
             print(f'Sent: {msg}')  # 데이터를 콘솔에 출력
         except Exception as e:
             print('Send() Error : ', e)
+

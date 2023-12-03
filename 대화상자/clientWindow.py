@@ -99,25 +99,18 @@ class DrawingReceiveCanvas(QWidget):
         super().__init__(parent)
         self.image = QImage(QSize(400, 400), QImage.Format_RGB32)
         self.image.fill(Qt.white)
-        self.drawing_coordinates = []  # List to store drawing coordinates
 
     def paintEvent(self, e):
         canvas = QPainter(self)
         canvas.drawImage(self.rect(), self.image, self.image.rect())
 
-    def update_drawing(self, coordinates):
-        painter = QPainter(self.image)
-        pen = QPen(Qt.black)
-        pen.setWidth(2)
-        painter.setPen(pen)
-
-        for start_point, end_point in zip(coordinates, coordinates[1:]):
-            painter.drawLine(start_point[0], start_point[1], end_point[0], end_point[1])
-
+    def update_drawing(self, image_data):
+        image = QImage.fromData(image_data)
+        self.image = image
         self.update()
 
 class DrawingReceiveDialog(QDialog):
-    def __init__(self, coordinates, parent=None):
+    def __init__(self, image_data, parent=None):
         super().__init__(parent)
         self.setWindowTitle('그림판')
         self.resize(800, 600)
@@ -127,11 +120,10 @@ class DrawingReceiveDialog(QDialog):
         layout.addWidget(self.drawing_canvas)
 
         
-        self.drawing_canvas.update_drawing(coordinates)  # 좌표를 화면에 업데이트
+        self.drawing_canvas.update_drawing(image_data)  # 좌표를 화면에 업데이트
 
     def closeEvent(self, event):
-        # 다이얼로그가 닫힐 때 drawingsendstate를 변경
-        self.parent().set_receive_drawingsendstate(False)  # 또는 True로 변경하면 됩니다.
+        self.parent().set_receive_drawingstate(False)  # 또는 True로 변경하면 됩니다.
         super().closeEvent(event)
 
 
@@ -140,7 +132,8 @@ class DrawingReceiveDialog(QDialog):
 class CWidget(QWidget):
     def __init__(self):
         super().__init__()
-        self.coordinates = []
+        self.image = QImage(QSize(400, 400), QImage.Format_RGB32) 
+        self.drawing_canvas = DrawingReceiveCanvas(self)
 
         self.c = client.ClientSocket(self)
         self.initUI()
@@ -266,14 +259,14 @@ class CWidget(QWidget):
 
     
     def show_drawing_receive_dialog(self):
-        dialog = DrawingReceiveDialog(self.coordinates,self)
+        dialog = DrawingReceiveDialog(self.image_data, self)
         dialog.exec_()
 
-    def set_receive_drawingsendstate(self, state):
-        self.drawingsendstate = state
-        print(f"drawingsendstate가 {state}로 변경되었습니다.")
-        self.drawingsendbtn.setText('그림판 확인')
-        self.drawingsendstate = True
+    def set_receive_drawingstate(self, state):
+        self.drawingreceivestate = state
+        print(f"drawingreceivestate가 {state}로 변경되었습니다.")
+        self.drawingreceivebtn.setText('그림판 확인')
+        self.drawingreceivestate = True
 
     def receive_drawing(self):
         if self.drawingreceivestate:
@@ -285,8 +278,8 @@ class CWidget(QWidget):
             self.drawingreceivebtn.setText('그림판 확인')
             self.drawingreceivestate = True
 
-    def handle_drawing_receive_coordinates(self, coordinates):
-       self.coordinates = coordinates
+    def handle_drawing_receive_coordinates(self, image_data):
+       self.image_data = image_data
 
 
  
