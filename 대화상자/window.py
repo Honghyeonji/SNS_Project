@@ -212,21 +212,38 @@ class CWidget(QWidget):
         self.s.stop()
 
     def displayRandomWord(self):
-        words = ["사과", "바나나", "오렌지", "포도", "체리", "딸기", "망고", "꽃", "달", "나무", "집" ]
-        self.random_word = random.choice(words)
+        if (self.random_word == None):
+            words = ["사과", "바나나", "오렌지", "포도", "체리", "딸기", "망고", "꽃", "달", "나무", "집" ]
+            self.random_word = random.choice(words)
 
-        message = f"랜덤 단어: {self.random_word}"
-        self.s.send(message)
+            self.updateMsg("게임을 시작합니다.")
+            self.updateMsg("단어가 전송 되었습니다. 상대방이 전송한 그림을 보고 맞춰주세요.")
+            self.updateMsg("그림판 버튼을 누르면 그림을 볼 수 있습니다.")
+
+            message1 = f"게임을 시작합니다.\n"
+            message2 = f"주어진 단어를 보고 그림을 그려 전송해주세요.\n"
+            message3 = f"우측 그림판을 통해 그릴 수 있습니다.\n"
+            message4 = f"랜덤 단어: {self.random_word}"
+
+            self.s.send(message1)
+            self.s.send(message2)
+            self.s.send(message3)
+            self.s.send(message4)
+
+        else:
+            self.updateMsg("이미 진행 중 입니다.")
 
     def guessWord(self):
         if (self.random_word != None):
             guessed_word = self.word_input.text()
             if guessed_word.lower() == self.random_word.lower():
+                self.updateMsg(f"정답을 맞췄습니다!")
                 self.updateMsg(f"맞춘 단어: {guessed_word}")
+                self.updateMsg(f"게임을 종료합니다.")
                 self.word_input.clear()
                 self.random_word = None
 
-                message = f"상대방이 정답을 맞췄습니다!"
+                message = f"상대방이 정답을 맞췄습니다! 게임을 종료합니다."
                 self.s.send(message)
             else:
                 self.updateMsg("틀렸습니다. 다시 시도하세요.")
