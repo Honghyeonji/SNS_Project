@@ -59,7 +59,15 @@ class ClientSocket:
                     print('[RECV]:', msg)
  
         self.stop()
+
+    # def send(self, msg):
+    #     if not self.bConnect:
+    #         return
  
+    #     try:
+    #         self.client.send(msg.encode())
+    #     except Exception as e:
+    #         print('Send() Error : ', e)
     def send(self, msg):
         if not self.bConnect:
             return

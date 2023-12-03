@@ -20,12 +20,13 @@ class DrawingCanvas(QWidget):
         canvas = QPainter(self)
         canvas.drawImage(self.rect(), self.image, self.image.rect())
 
-    def update_drawing(self, image):
+    def update_drawing(self, image_data):
+        image = QImage.fromData(image_data)
         self.image = image
         self.update()
 
 class DrawingDialog(QDialog):
-    def __init__(self, image, parent=None):
+    def __init__(self, image_data, parent=None):
         super().__init__(parent)
         self.setWindowTitle('그림판')
         self.resize(800, 600)
@@ -35,7 +36,7 @@ class DrawingDialog(QDialog):
         layout.addWidget(self.drawing_canvas)
 
         
-        self.drawing_canvas.update_drawing(image)  # 좌표를 화면에 업데이트
+        self.drawing_canvas.update_drawing(image_data)  # 좌표를 화면에 업데이트
     
 
 class CWidget(QWidget):
@@ -139,7 +140,7 @@ class CWidget(QWidget):
         self.s.start("127.0.0.1", 1234)
 
     def show_drawing_dialog(self):
-        dialog = DrawingDialog(self.image,self)
+        dialog = DrawingDialog(self.image_data,self)
         dialog.exec_()
 
     def drawing(self):
@@ -153,7 +154,8 @@ class CWidget(QWidget):
 
             self.show_drawing_dialog()
     def handle_drawing_coordinates(self, image_data):
-       self.image = QImage.fromData(image_data)
+       self.image_data = image_data
+    #    print(image_data)
     #    self.drawing_canvas.update_drawing(image)
 
     def updateClient(self, addr, isConnect=False):

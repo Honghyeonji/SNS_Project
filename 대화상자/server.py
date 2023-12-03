@@ -18,6 +18,25 @@ class ServerSocket(QObject):
  
         self.update_signal.connect(self.parent.updateClient)  
         self.recv_signal.connect(self.parent.updateMsg)
+    def handle_client(self, client_socket, addr):
+
+        while True:
+            try:
+                data = client_socket.recv(1024)
+                if not data:
+                    break
+
+                # 받은 데이터가 좌표 데이터인지 확인
+                if data.startswith(b'Drawing Coordinates:'):
+                    coordinates = eval(data.split(b':', 1)[1].decode())
+                    self.client_coordinates[addr] = coordinates
+
+                    # 새로운 좌표가 도착할 때마다 모든 클라이언트에게 전송
+                    for client, client_socket in self.clients.items():
+                        if client != addr:
+                            client_socket.sendall(data)
+            except:
+                break
          
     def __del__(self):
         self.stop()
@@ -70,9 +89,9 @@ class ServerSocket(QObject):
                 data = client.recv(4096)
                 if not data:
                     break
-                identifier, image_data = pickle.loads(data)
-
-                self.parent.handle_drawing_image(identifier,data)  # 좌표 리스트만 전달
+                # identifier, image_data = pickle.loads(data)
+                # print(data)
+                self.parent.handle_drawing_coordinates(data)  # 좌표 리스트만 전달
                 # Process the binary data as needed
                 # For example, you can save it to a file or perform other image processing
                 with open('received_image.png', 'ab') as file:

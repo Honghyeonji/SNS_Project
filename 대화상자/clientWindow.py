@@ -8,18 +8,6 @@ import socket
 import threading
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-class ImagePopup(QDialog):
-    def __init__(self, image_data, parent=None):
-        super().__init__(parent)
-
-        pixmap = QPixmap()
-        pixmap.loadFromData(image_data)
-
-        label = QLabel(self)
-        label.setPixmap(pixmap)
-
-        layout = QVBoxLayout(self)
-        layout.addWidget(label)
 
 class DrawingCanvas(QWidget):
     drawing_signal = pyqtSignal(str, bytes)
@@ -195,13 +183,10 @@ class CWidget(QWidget):
 
     def handle_drawing_image(self, identifier, image_data):
 
-        # if identifier == "drawing_image":
-        #     image_data_bytes = bytes(image_data)
+        if identifier == "drawing_image":
+            image_data_bytes = bytes(image_data)
 
-        #     self.c.send(image_data_bytes)
-        # popup = ImagePopup(image_data)
-        # popup.show()
-        print(image_data)
+            self.c.send(image_data_bytes)
 
 
 
