@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import *
 import sys
 import socket
 import server
+import random
+
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 
@@ -49,6 +51,8 @@ class DrawingDialog(QDialog):
 class CWidget(QWidget):
     def __init__(self):
         super().__init__()
+        self.random_word = None
+        self.coordinates = []
 
         self.s = server.ServerSocket(self)
         self.drawing_canvas = DrawingCanvas(self)
@@ -123,6 +127,17 @@ class CWidget(QWidget):
         self.drawingbtn.clicked.connect(self.drawing)
         box.addWidget(self.drawingbtn)
 
+        self.wordbtn = QPushButton('단어 출제')
+        box.addWidget(self.wordbtn)
+        self.wordbtn.clicked.connect(self.displayRandomWord)
+        gb.setLayout(box)
+
+        self.word_input = QLineEdit()
+        self.guess_btn = QPushButton('정답 맞추기')
+        self.guess_btn.clicked.connect(self.guessWord)
+        hbox.addWidget(self.word_input)
+        hbox.addWidget(self.guess_btn)
+
         gb.setLayout(box)
 
         vbox = QVBoxLayout()
@@ -131,9 +146,6 @@ class CWidget(QWidget):
         self.setLayout(vbox)
 
         self.show()
-
-
-
 
         gb.setLayout(box)
 
@@ -160,6 +172,7 @@ class CWidget(QWidget):
             self.drawingstate = True
 
             self.show_drawing_dialog()
+
     def handle_drawing_coordinates(self, coordinates):
        self.coordinates = coordinates
 
@@ -197,6 +210,33 @@ class CWidget(QWidget):
 
     def closeEvent(self, e):
         self.s.stop()
+
+    def displayRandomWord(self):
+        words = ["사과", "바나나", "오렌지", "포도", "체리", "딸기", "망고", "꽃", "달", "나무", "집" ]
+        self.random_word = random.choice(words)
+
+        message = f"랜덤 단어: {self.random_word}"
+        self.s.send(message)
+
+    def guessWord(self):
+        if (self.random_word != None):
+            guessed_word = self.word_input.text()
+            if guessed_word.lower() == self.random_word.lower():
+                self.updateMsg(f"맞춘 단어: {guessed_word}")
+                self.word_input.clear()
+                self.random_word = None
+
+                message = f"상대방이 정답을 맞췄습니다!"
+                self.s.send(message)
+            else:
+                self.updateMsg("틀렸습니다. 다시 시도하세요.")
+                self.word_input.clear()
+        else:
+            self.updateMsg("랜덤 단어를 먼저 출제하세요.")
+            self.word_input.clear()
+            
+
+            
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

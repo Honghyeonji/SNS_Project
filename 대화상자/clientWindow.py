@@ -6,6 +6,7 @@ import client
 import sys
 import socket
 import threading
+import random
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 
@@ -152,7 +153,7 @@ class CWidget(QWidget):
         self.drawingstate = False
         self.drawingbtn.clicked.connect(self.drawing)
         box.addWidget(self.drawingbtn)
-
+        
         # box.addlayout() 해서 그림판 추가
         # 그림판 버튼은 /그림판 으로 명령어로 넘어가기로 했던 것 대신 그림판 버튼 누르면 그림판으로 넘어가게 하고 싶어서 추가함
 
@@ -169,6 +170,7 @@ class CWidget(QWidget):
         self.drawingbtn.clicked.connect(self.drawing)
 
         self.show()
+
     def show_drawing_dialog(self):
         dialog = DrawingDialog(self)
         dialog.drawing_signal.connect(self.handle_drawing_coordinates)  # Connect the signal
@@ -226,8 +228,9 @@ class CWidget(QWidget):
         self.recvmsg.clear()
  
     def closeEvent(self, e):
-        self.c.stop()       
- 
+        self.c.stop()
+
+            
  
 if __name__ == '__main__':
     app = QApplication(sys.argv)
