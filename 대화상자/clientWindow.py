@@ -186,7 +186,7 @@ class CWidget(QWidget):
         if identifier == "drawing_image":
             image_data_bytes = bytes(image_data)
 
-            self.c.send(image_data_bytes)
+            self.c.sendIMG(image_data_bytes)
 
 
 
