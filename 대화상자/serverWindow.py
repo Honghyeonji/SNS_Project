@@ -127,12 +127,6 @@ class CWidget(QWidget):
         self.wordbtn.clicked.connect(self.displayRandomWord)
         gb.setLayout(box)
 
-        self.word_input = QLineEdit()
-        self.guess_btn = QPushButton('정답 맞추기')
-        self.guess_btn.clicked.connect(self.guessWord)
-        hbox.addWidget(self.word_input)
-        hbox.addWidget(self.guess_btn)
-
         gb.setLayout(box)
 
         vbox = QVBoxLayout()
@@ -202,18 +196,18 @@ class CWidget(QWidget):
         sendmsg = "Server[" + str(self.s.server.getsockname()[1]) + "]" + self.sendmsg.text()
         self.updateMsg(sendmsg)
         print(sendmsg)
-        self.s.send(sendmsg)
-        if self.sendmsg.text().find(self.random_word):
-            self.updateMsg(f"서버가 정답을 맞췄습니다!")
-            self.updateMsg(f"맞춘 단어: {self.random_word}")
-            self.updateMsg(f"게임을 종료합니다.")
-            sendmsg = f"Server[{str(self.s.server.getsockname()[1])}]님이 정답을 맞췄습니다! : 맞춘단어:{self.random_word}\n"
-            self.s.send(sendmsg)
-            self.word_input.clear()
-            self.random_word = None
-            self.s.quizing=False
-            self.s.quizWord=None
-            self.s.quizClient=None
+        self.s.sendmsg(sendmsg)
+        if self.sendmsg.text() and self.random_word:
+            if self.sendmsg.text().find(self.random_word):
+                self.updateMsg(f"서버가 정답을 맞췄습니다!")
+                self.updateMsg(f"맞춘 단어: {self.random_word}")
+                self.updateMsg(f"게임을 종료합니다.")
+                sendmsg = f"Server[{str(self.s.server.getsockname()[1])}]님이 정답을 맞췄습니다! : 맞춘단어:{self.random_word}\n"
+                self.s.sendmsg(sendmsg)
+                self.random_word = None
+                self.s.quizing=False
+                self.s.quizWord=None
+                self.s.quizClient=None
         self.sendmsg.clear()
 
     def clearMsg(self):
@@ -241,7 +235,6 @@ class CWidget(QWidget):
         self.updateMsg(f"정답을 맞췄습니다!")
         self.updateMsg(f"맞춘 단어: {self.random_word}")
         self.updateMsg(f"게임을 종료합니다.")
-        self.word_input.clear()
         self.random_word = None
 
 if __name__ == '__main__':

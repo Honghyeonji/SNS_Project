@@ -4,9 +4,6 @@ from PyQt5.QtWidgets import *
 import sys
 import client
 import sys
-import socket
-import threading
-import random
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 
@@ -153,15 +150,11 @@ class CWidget(QWidget):
  
         box = QHBoxLayout()
  
-        label = QLabel('Server IP')
-        self.ip = QLineEdit()
+        label = QLabel('Server IP : 127.0.0.1')
         box.addWidget(label)
-        box.addWidget(self.ip)
  
-        label = QLabel('Server Port')
-        self.port = QLineEdit()
+        label = QLabel('Server Port : 1234')
         box.addWidget(label)
-        box.addWidget(self.port)
  
         self.btn = QPushButton('접속')       
         self.btn.clicked.connect(self.connectClicked)
@@ -285,9 +278,7 @@ class CWidget(QWidget):
  
     def connectClicked(self):
         if self.c.bConnect == False:
-            ip = self.ip.text()
-            port = self.port.text()
-            if self.c.connectServer(ip, int(port)):
+            if self.c.connectServer("127.0.0.1", 1234):
                 self.btn.setText('접속 종료')
             else:
                 self.c.stop()

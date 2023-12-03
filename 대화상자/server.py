@@ -82,15 +82,20 @@ class ServerSocket(QObject):
                 if data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xFF\xD8\xFF\xE0') or data.startswith(b'\xFF\xD8\xFF\xE1'):
                     self.parent.handle_drawing_coordinates(data) 
                     self.sendIMG(data, client)
-    
                 else:
                     msg = data.decode('utf-8')
-                    if msg.find(self.quizWord):
-                        self.quiz_signal.emit(msg)
-                        self.quizCorrect(msg, client)
-                    else:
-                        self.msg_signal.emit(msg)
-                        self.send(msg, client)
+                    # if self.quizWord:
+                    #     if msg.find(self.quizWord):
+                    #         self.quiz_signal.emit(msg)
+                    #         self.quizCorrect(client)
+                    #     else:
+                    #         self.msg_signal.emit(msg)
+                    #         self.sendmsg(msg, client)
+                    # else:
+                    #     self.msg_signal.emit(msg)
+                    #     self.sendmsg(msg, client)
+                    self.msg_signal.emit(msg)
+                    self.sendmsg(msg, client)
 
         except Exception as e:
             print(f"Error receiving data from {addr}: {e}")
@@ -99,7 +104,7 @@ class ServerSocket(QObject):
             self.removeClient(addr, client)
         
  
-    def send(self, msg, client=None):
+    def sendmsg(self, msg, client=None):
         try:
             if client:
                 for c in self.clients:
@@ -136,12 +141,12 @@ class ServerSocket(QObject):
                     c.send(msg.encode())
                     msg = f"우측 그림판을 통해 그릴 수 있습니다.\n"
                     c.send(msg.encode())
-                    msg = f"랜덤 단어: {word}"
+                    msg = f"랜덤 단어: {word}\n"
                     c.send(msg.encode())
                 else:
                     msg = f"게임을 시작합니다.\n"
                     c.send(msg.encode())
-                    msg = f"단어가 {"Client[" + str(self.quizClient.getscokname()[1]) + "]"}유저에게 전송 되었습니다. {"Client[" + str(self.quizClient.getscokname()[1]) + "]"}유저가 전송한 그림을 보고 맞춰주세요.\n"
+                    msg = f"단어가 Client[{str(self.quizClient.getsockname()[1])}]유저에게 전송 되었습니다. Client[{str(self.quizClient.getsockname()[1])}]유저가 전송한 그림을 보고 맞춰주세요.\n"
                     c.send(msg.encode())
                     msg = f"그림이 도착한 후 그림판 버튼을 누르면 그림을 볼 수 있습니다.\n"
                     c.send(msg.encode())
@@ -159,7 +164,7 @@ class ServerSocket(QObject):
                     msg = f"게임을 종료합니다.\n"
                     c.send(msg.encode())
                 else:
-                    msg = f"Client[{str(client.getscokname()[1])}]님이 정답을 맞췄습니다! : 맞춘 단어:{self.quizWord}.\n"
+                    msg = f"Client[{str(client.getsockname()[1])}]님이 정답을 맞췄습니다! : 맞춘 단어:{self.quizWord}.\n"
                     c.send(msg.encode())
                     msg = f"게임을 종료합니다.\n"
                     c.send(msg.encode())
