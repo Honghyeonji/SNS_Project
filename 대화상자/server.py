@@ -86,17 +86,14 @@ class ServerSocket(QObject):
                     msg = data.decode('utf-8')
                     if self.quizing:
                         if self.quizWord in msg:
-                            self.cnt+=1
                             self.quiz_signal.emit(msg)
                             self.quizCorrect(client)
                         else:
                             self.msg_signal.emit(msg)
                             self.sendmsg(msg, client)
-                            self.cnt+=1
                     else:
                         self.msg_signal.emit(msg)
                         self.sendmsg(msg, client)
-                        self.cnt+=1
         except Exception as e:
             print(f"Error receiving data from {addr}: {e}")
         finally:
