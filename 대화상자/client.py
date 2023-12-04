@@ -49,7 +49,6 @@ class ClientSocket(QObject):
                 if not data:
                     break
                 print(data)
-                # 받은 데이터가 좌표 데이터인지 확인
                 if data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xFF\xD8\xFF\xE0') or data.startswith(b'\xFF\xD8\xFF\xE1'):
                     self.parent.handle_drawing_receive_coordinates(data) 
     

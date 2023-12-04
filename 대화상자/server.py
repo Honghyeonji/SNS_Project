@@ -78,25 +78,25 @@ class ServerSocket(QObject):
                 if not data:
                     break
                 print(data)
-                # 받은 데이터가 좌표 데이터인지 확인
+                print("receiving")
                 if data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xFF\xD8\xFF\xE0') or data.startswith(b'\xFF\xD8\xFF\xE1'):
                     self.parent.handle_drawing_coordinates(data) 
                     self.sendIMG(data, client)
                 else:
                     msg = data.decode('utf-8')
-                    # if self.quizWord:
-                    #     if msg.find(self.quizWord):
-                    #         self.quiz_signal.emit(msg)
-                    #         self.quizCorrect(client)
-                    #     else:
-                    #         self.msg_signal.emit(msg)
-                    #         self.sendmsg(msg, client)
-                    # else:
-                    #     self.msg_signal.emit(msg)
-                    #     self.sendmsg(msg, client)
-                    self.msg_signal.emit(msg)
-                    self.sendmsg(msg, client)
-
+                    if self.quizing:
+                        if self.quizWord in msg:
+                            self.cnt+=1
+                            self.quiz_signal.emit(msg)
+                            self.quizCorrect(client)
+                        else:
+                            self.msg_signal.emit(msg)
+                            self.sendmsg(msg, client)
+                            self.cnt+=1
+                    else:
+                        self.msg_signal.emit(msg)
+                        self.sendmsg(msg, client)
+                        self.cnt+=1
         except Exception as e:
             print(f"Error receiving data from {addr}: {e}")
         finally:
@@ -125,7 +125,6 @@ class ServerSocket(QObject):
             else:
                 for c in self.clients:
                     c.sendall(msg)
-            print(f'imgSent: {msg}')  # 데이터를 콘솔에 출력
         except Exception as e:
             print('imgSend() Error : ', e)
         
@@ -155,7 +154,7 @@ class ServerSocket(QObject):
         except Exception as e:
             print('sendQuizSend() Error : ', e)
             
-    def quizCorrect(self, client):
+    def quizCorrect(self, client=None):
         try:
             for c in self.clients:
                 if c == client:

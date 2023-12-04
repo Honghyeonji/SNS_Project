@@ -198,7 +198,7 @@ class CWidget(QWidget):
         print(sendmsg)
         self.s.sendmsg(sendmsg)
         if self.sendmsg.text() and self.random_word:
-            if self.sendmsg.text().find(self.random_word):
+            if self.random_word in self.sendmsg.text():
                 self.updateMsg(f"서버가 정답을 맞췄습니다!")
                 self.updateMsg(f"맞춘 단어: {self.random_word}")
                 self.updateMsg(f"게임을 종료합니다.")
